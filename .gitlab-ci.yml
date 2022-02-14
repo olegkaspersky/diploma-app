@@ -138,31 +138,12 @@ gitleaks secrets scanning:
     - docker
 
 
-snyk python dependencies scanning:
+trivy python dependencies scanning:
   stage: security
-  image: python:3
+  image: aquasec/trivy
   allow_failure: true
-  variables:
-    PIP_CACHE_DIR: $CI_PROJECT_DIR/.cache/pip
-    SNYK_TOKEN: $SNYK_TOKEN
-  cache:
-    paths:
-      - .cache/pip
-      - venv/
-  before_script:
-    - pip install virtualenv
-    - virtualenv venv
-    - source venv/bin/activate
-    - pip install -r requirements.txt
-    - apt-get update && apt-get install -y curl
-    - curl -sL https://deb.nodesource.com/setup_lts.x | bash -
-    - apt-get update && apt-get install -y nodejs
-    - npm install -g snyk
-    - snyk config set api=$SNYK_TOKEN
-    - pip install -r requirements.txt
   script:
-    - snyk monitor
-    - snyk test
+    - trivy fs requirements.txt
   rules:
     - if: $CI_COMMIT_BRANCH != $CI_DEFAULT_BRANCH
   tags:
@@ -195,16 +176,13 @@ build image:
     - shell
 
 
-snyk container image scanning:
-  stage: scan image
-  allow_failure: true
+trivy image scanning:
+  image:
+    name: aquasec/trivy:latest
+    entrypoint: [""]
   variables:
     GIT_STRATEGY: none
   script:
-    - docker scan $CI_REGISTRY_IMAGE:latest --token "$SNYK_TOKEN"
-  needs:
-    - build image
-  only:
-    - tags
+    - trivy image ${REGISTRY_URL}${IMAGE_NAME}:latest
   tags:
-    - shell
+    - docker
