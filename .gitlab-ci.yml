@@ -138,11 +138,11 @@ gitleaks secrets scanning:
     - docker
 
 
-trivy python dependencies scanning:
+python dependencies scanning:
   image:
     name: docker.io/aquasec/trivy:latest
     entrypoint: [""]
-  stage: scan image
+  stage: security
   allow_failure: true
   variables:
     # No need to clone the repo, we exclusively work on artifacts.  See
@@ -190,7 +190,7 @@ build image:
     - shell
 
 
-container_scanning:
+scan image:
   image:
     name: docker.io/aquasec/trivy:latest
     entrypoint: [""]
@@ -207,5 +207,7 @@ container_scanning:
   script:
     - trivy --version
     - time trivy image $FULL_IMAGE_NAME
+  only:
+    - tags
   tags:
     - docker
