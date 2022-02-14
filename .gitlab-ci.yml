@@ -1,0 +1,208 @@
+---
+stages:
+  - pre-build
+  - security
+  - build
+  - scan image
+
+
+lint python code:
+  stage: pre-build
+  image: python:3
+  allow_failure: true
+  variables:
+    PIP_CACHE_DIR: $CI_PROJECT_DIR/.cache/pip
+  cache:
+    key: pythonlint
+    paths:
+      - .cache/pip
+      - venv/
+  before_script:
+    - python -m pip install --upgrade pip
+    - pip install virtualenv
+    - virtualenv venv
+    - source venv/bin/activate
+  script:
+    - >-
+      pip install flake8
+      flake8-import-order
+      flake8_docstrings
+      flake8-builtins
+      flake8-quotes
+    - flake8 app/
+  rules:
+    - if: $CI_COMMIT_BRANCH != $CI_DEFAULT_BRANCH
+  tags:
+    - docker
+
+
+lint dockerfile:
+  stage: pre-build
+  image: ghcr.io/hadolint/hadolint:latest-alpine
+  allow_failure: true
+  script:
+    - hadolint Dockerfile
+  only:
+    changes:
+      - Dockerfile
+  tags:
+    - docker
+
+
+checkov dockerfile:
+  stage: pre-build
+  image:
+    name: bridgecrew/checkov:latest
+    entrypoint:
+      - '/usr/bin/env'
+      - 'PATH=/usr/local/sbin:/usr/local/bin:/usr/sbin:/usr/bin:/sbin:/bin'
+  allow_failure: true
+  script:
+    - checkov -d Dockerfile -o cli
+  only:
+    changes:
+      - Dockerfile
+  tags:
+    - docker
+
+
+lint yaml files:
+  stage: pre-build
+  image: python:3
+  allow_failure: true
+  variables:
+    PIP_CACHE_DIR: $CI_PROJECT_DIR/.cache/pip
+  cache:
+    key: yamllint
+    paths:
+      - .cache/pip
+      - venv/
+  before_script:
+    - python -m pip install --upgrade pip
+    - pip install virtualenv
+    - virtualenv venv
+    - source venv/bin/activate
+  script:
+    - pip install yamllint
+    - yamllint .gitlab-ci.yml .hadolint.yaml
+  only:
+    changes:
+      - .gitlab-ci.yml
+      - .hadolint.yaml
+  tags:
+    - docker
+
+
+semgrep:
+  stage: security
+  image: returntocorp/semgrep-agent:v1
+  allow_failure: true
+  variables:
+    SEMGREP_RULES: >-
+      p/auto
+      p/ci
+      p/command-injection
+      p/dockerfile
+      p/flask
+      p/gitlab-bandit
+      p/insecure-transport
+      p/jwt
+      p/owasp-top-ten
+      p/python
+      p/r2c-best-practices
+      p/r2c-ci
+      p/secrets
+      p/security-audit
+      p/sql-injection
+      p/trailofbits
+      p/xss
+  script: semgrep-agent
+  rules:
+    - if: $CI_COMMIT_BRANCH != $CI_DEFAULT_BRANCH
+  tags:
+    - docker
+
+
+gitleaks secrets scanning:
+  stage: security
+  image:
+    name: zricethezav/gitleaks
+    entrypoint:
+      - ""
+  allow_failure: false
+  script:
+    - gitleaks detect -v
+  rules:
+    - if: $CI_COMMIT_BRANCH != $CI_DEFAULT_BRANCH
+  tags:
+    - docker
+
+
+snyk python dependencies scanning:
+  stage: security
+  image: python:3
+  allow_failure: true
+  variables:
+    PIP_CACHE_DIR: $CI_PROJECT_DIR/.cache/pip
+  cache:
+    paths:
+      - .cache/pip
+      - venv/
+  before_script:
+    - pip install virtualenv
+    - virtualenv venv
+    - source venv/bin/activate
+    - pip install -r requirements.txt
+    - apt-get update && apt-get install -y curl
+    - curl -sL https://deb.nodesource.com/setup_lts.x | bash -
+    - apt-get update && apt-get install -y nodejs
+    - npm install -g snyk
+  script:
+    - snyk auth "$SNYK_TOKEN"
+    - snyk monitor --all-projects
+    - snyk test
+  rules:
+    - if: $CI_COMMIT_BRANCH != $CI_DEFAULT_BRANCH
+  tags:
+    - docker
+
+
+build image:
+  stage: build
+  allow_failure: false
+  variables:
+    IMAGE_NAME: app
+    REGISTRY_URL: registry.koi-projects.ru/epam-diploma/
+  before_script:
+    - >-
+      echo -n ${CI_REGISTRY_PASSWORD} | docker login -u $CI_REGISTRY_USER
+      --password-stdin $CI_REGISTRY
+  script:
+    - >-
+      DOCKER_BUILDKIT=1 docker build
+      --pull
+      --no-cache
+      -t ${REGISTRY_URL}${IMAGE_NAME}:latest
+      -t ${REGISTRY_URL}${IMAGE_NAME}:$CI_COMMIT_TAG
+      .
+    - docker push ${REGISTRY_URL}${IMAGE_NAME}:$CI_COMMIT_TAG
+    - docker push ${REGISTRY_URL}${IMAGE_NAME}:latest
+  only:
+    - tags
+  tags:
+    - shell
+
+
+snyk container image scanning:
+  stage: scan image
+  allow_failure: true
+  variables:
+    GIT_STRATEGY: none
+  script:
+    - docker scan $CI_REGISTRY_IMAGE:latest --token "$SNYK_TOKEN"
+  needs:
+    - build image
+  only:
+    - tags
+  tags:
+    - shell
