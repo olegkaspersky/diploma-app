@@ -42,9 +42,8 @@ lint dockerfile:
   allow_failure: true
   script:
     - hadolint Dockerfile
-  only:
-    changes:
-      - Dockerfile
+  rules:
+    - if: $CI_COMMIT_BRANCH != $CI_DEFAULT_BRANCH
   tags:
     - docker
 
@@ -59,9 +58,8 @@ checkov dockerfile:
   allow_failure: true
   script:
     - checkov -d Dockerfile -o cli
-  only:
-    changes:
-      - Dockerfile
+  rules:
+    - if: $CI_COMMIT_BRANCH != $CI_DEFAULT_BRANCH
   tags:
     - docker
 
@@ -197,8 +195,6 @@ scan image:
   stage: scan image
   allow_failure: true
   variables:
-    # No need to clone the repo, we exclusively work on artifacts.  See
-    # https://docs.gitlab.com/ee/ci/runners/README.html#git-strategy
     GIT_STRATEGY: none
     TRIVY_USERNAME: "$CI_REGISTRY_USER"
     TRIVY_PASSWORD: "$CI_REGISTRY_PASSWORD"
