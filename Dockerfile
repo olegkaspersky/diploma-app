@@ -28,4 +28,4 @@ COPY app/ .
 
 EXPOSE 5000
 
-CMD ["gunicorn", "-t=30", "--worker-tmp-dir=/dev/shm", "wsgi:app"]
+CMD ["gunicorn", "wsgi:app"]

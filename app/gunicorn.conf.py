@@ -1,7 +1,7 @@
 import multiprocessing
 
-pidfile = 'nhl-app.pid'
-proc_name = 'nhl-app'
+# pidfile = 'nhl-app.pid'
+# proc_name = 'nhl-app'
 
 bind = '0.0.0.0:5000'
 
