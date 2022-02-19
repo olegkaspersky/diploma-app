@@ -14,7 +14,7 @@ def get_final_game_data(season, game_type):
     payload = {'season': season_id,
                'gameType': game_type,
                'expand': 'schedule.linescore'
-              }
+               }
 
     dates = requests.get(schedules,
                          params=payload,
@@ -30,9 +30,9 @@ def get_final_game_data(season, game_type):
     final_game_game_pk = max(games_pks)
 
     game_info = requests.get(
-                             (games_info + str(final_game_game_pk) + '/feed/live'),
-                             timeout=api_request_timeout).json()['gameData']
-                             
+        (games_info + str(final_game_game_pk) + '/feed/live'),
+        timeout=api_request_timeout).json()['gameData']
+
     players = game_info['players']
     game_players = []
     for player in players:
