@@ -30,8 +30,11 @@ lint python code:
       flake8-builtins
       flake8-quotes
     - flake8 app/
-  rules:
-    - if: $CI_COMMIT_BRANCH != $CI_DEFAULT_BRANCH
+  only:
+    - branches
+  except:
+    - tags
+    - main
   tags:
     - docker
 
@@ -42,24 +45,11 @@ lint dockerfile:
   allow_failure: true
   script:
     - hadolint Dockerfile
-  rules:
-    - if: $CI_COMMIT_BRANCH != $CI_DEFAULT_BRANCH
-  tags:
-    - docker
-
-
-checkov dockerfile:
-  stage: pre-build
-  image:
-    name: bridgecrew/checkov:latest
-    entrypoint:
-      - '/usr/bin/env'
-      - 'PATH=/usr/local/sbin:/usr/local/bin:/usr/sbin:/usr/bin:/sbin:/bin'
-  allow_failure: true
-  script:
-    - checkov -d Dockerfile -o cli
-  rules:
-    - if: $CI_COMMIT_BRANCH != $CI_DEFAULT_BRANCH
+  only:
+    - branches
+  except:
+    - tags
+    - main
   tags:
     - docker
 
@@ -115,8 +105,11 @@ semgrep:
       p/trailofbits
       p/xss
   script: semgrep-agent
-  rules:
-    - if: $CI_COMMIT_BRANCH != $CI_DEFAULT_BRANCH
+  only:
+    - branches
+  except:
+    - tags
+    - main
   tags:
     - docker
 
@@ -130,8 +123,6 @@ gitleaks secrets scanning:
   allow_failure: false
   script:
     - gitleaks detect -v
-  rules:
-    - if: $CI_COMMIT_BRANCH != $CI_DEFAULT_BRANCH
   tags:
     - docker
 
@@ -156,8 +147,11 @@ python dependencies scanning:
   cache:
     paths:
       - .trivycache/
-  rules:
-    - if: $CI_COMMIT_BRANCH != $CI_DEFAULT_BRANCH
+  only:
+    - branches
+  except:
+    - tags
+    - main
   tags:
     - docker
 
@@ -184,6 +178,8 @@ build image:
     - docker push ${REGISTRY_URL}${IMAGE_NAME}:latest
   only:
     - tags
+  except:
+    - branches
   tags:
     - shell
 
@@ -205,5 +201,7 @@ scan image:
     - time trivy image $FULL_IMAGE_NAME
   only:
     - tags
+  except:
+    - branches
   tags:
     - docker
