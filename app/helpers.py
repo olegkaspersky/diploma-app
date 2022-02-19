@@ -11,13 +11,15 @@ api_request_timeout = 30
 
 def get_final_game_data(season, game_type):
     season_id = str(int(season) - 1) + str(season)
-    payload = {'season': season_id, 'gameType': game_type, 'expand': 'schedule.linescore'}
+    payload = {'season': season_id,
+               'gameType': game_type,
+               'expand': 'schedule.linescore'
+              }
 
     dates = requests.get(schedules,
                          params=payload,
                          timeout=api_request_timeout
-                        ).json()['dates']
-
+                         ).json()['dates']
 
     games_pks = []
 
@@ -27,12 +29,14 @@ def get_final_game_data(season, game_type):
 
     final_game_game_pk = max(games_pks)
 
-    game_info =  requests.get((games_info + str(final_game_game_pk) + '/feed/live'), 
-                                timeout=api_request_timeout).json()['gameData']
+    game_info = requests.get(
+                             (games_info + str(final_game_game_pk) + '/feed/live'),
+                             timeout=api_request_timeout).json()['gameData']
+                             
     players = game_info['players']
     game_players = []
     for player in players:
-            game_players.append(players[player]['fullName'])
+        game_players.append(players[player]['fullName'])
 
     for date in dates:
         if date['games'][0]['gamePk'] == final_game_game_pk:
@@ -42,7 +46,7 @@ def get_final_game_data(season, game_type):
             away_team_score = date['games'][0]['teams']['away']['score']
             players = game_players
 
-            game = games.Game(home_team, 
+            game = games.Game(home_team,
                               away_team,
                               home_team_score,
                               away_team_score,

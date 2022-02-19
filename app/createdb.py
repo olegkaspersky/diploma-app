@@ -8,6 +8,6 @@ for game_type in game_types:
     for year in years:
         if year == 2021 and game_type == 'A':
             continue
-        else: 
+        else:
             game_info = helpers.get_final_game_data(year, game_type)
             db.insert_data(game_type, year, game_info)
