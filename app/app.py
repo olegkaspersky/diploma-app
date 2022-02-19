@@ -31,7 +31,7 @@ def index():
 def final():
     if request.method == 'POST':
         year = int(request.form['year'])
-        game_data = db.read_data('final', year)
+        game_data = db.read_data('P', year)
         app.logger.info('User accessed %s final game.', year)
         return render_template('app.html',
                                final=False,
@@ -53,7 +53,7 @@ def allstar():
         if year == 2021:
             return render_template('exception.html')
         else:
-            game_data = db.read_data('allstar', year)
+            game_data = db.read_data('A', year)
             return render_template('app.html',
                                    allstar=False,
                                    home_team=game_data.get_home_team(),
