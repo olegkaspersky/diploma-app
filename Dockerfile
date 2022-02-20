@@ -19,7 +19,8 @@ RUN apt-get -y update && \
     apt-get -y upgrade && \
     apt-get clean && \
     rm -rf /var/lib/apt/lists/* && \
-    pip install pipenv && \
+    pip install -U --no-cache-dir pip && \
+    pip install -U --no-cache-dir pipenv && \
     useradd -m nhl-app
 
 USER nhl-app
